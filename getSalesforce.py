@@ -1,29 +1,31 @@
 from zeep import Client
-from zeep.helpers import serialize_object
+from zeep.transports import Transport
 from google.cloud import storage
 import csv
 import json
 import sys
 import requests
-from zeep import xsd
+from requests import Session
 
 class SalesforceBulkExtractor:
-    def __init__(self, wsdl_path, access_token):
-        # WSDLファイルからSOAPクライアントを作成
-        self.client = Client(wsdl_path)
-        self.access_token = access_token
+    def __init__(self, wsdl_path, access_token, instance_url):
+        # セッションを初期化してTransportに設定
+        session = Session()
+        transport = Transport(session=session)
+
+        # WSDLファイルを読み込み、クライアントを作成
+        self.client = Client(wsdl_path, transport=transport)
+
+        # SalesforceのインスタンスURLでエンドポイントを設定
+        self.client.wsdl.services[0].ports[0].binding_options['address'] = f"{instance_url}/services/Soap/c/53.0"
+
+        # セッションヘッダーを設定
+        self.session_header = {'SessionHeader': {'sessionId': access_token}}
 
     def query_data(self, soql_query):
-        # SessionHeader を構築
-        session_header = {
-            'sessionId': self.access_token
-        }
-
-        # ヘッダーを作成してクエリを実行
-        response = self.client.service.query(soql_query, _soapheaders={'SessionHeader': session_header})
-        
-        # レスポンスをシリアライズ（Pythonの辞書形式に変換）
-        return serialize_object(response)
+        # SOQLクエリを実行し、結果を返す
+        response = self.client.service.query(soql_query, _soapheaders={'SessionHeader': self.session_header})
+        return response['records']
 
 class GCSUploader:
     def __init__(self, bucket_name):
@@ -87,7 +89,7 @@ def main():
     soql_query = load_soql_query(query_file)
     
     # Salesforceからデータを抽出
-    sf_extractor = SalesforceBulkExtractor(wsdl_path, access_token)
+    sf_extractor = SalesforceBulkExtractor(wsdl_path, access_token, instance_url)
     data = sf_extractor.query_data(soql_query)
     
     # データのフィールドはSOQLクエリに依存
