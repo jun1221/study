@@ -3,10 +3,12 @@ import sys
 import requests
 from zeep import Client
 from google.cloud import storage
+import csv
 
 class SalesforceBulkExtractor:
-    def __init__(self, wsdl_url, access_token, instance_url):
-        self.client = Client(wsdl_url)
+    def __init__(self, wsdl_path, access_token, instance_url):
+        # ローカルのWSDLファイルを使用
+        self.client = Client(wsdl_path)
         self.session_header = {'SessionHeader': {'sessionId': access_token}}
         self.instance_url = instance_url
 
@@ -16,6 +18,7 @@ class SalesforceBulkExtractor:
             'Authorization': f'Bearer {self.session_header["SessionHeader"]["sessionId"]}',
             'Content-Type': 'text/xml'
         })
+        # SOQLクエリでデータを取得
         response = self.client.service.query(self.session_header, soql_query)
         return response['records']
 
@@ -73,12 +76,15 @@ def main():
     password = config['password']  # セキュリティトークンを含める
     access_token, instance_url = get_salesforce_token(consumer_key, consumer_secret, username, password)
     
+    # WSDLファイルのローカルパスを指定
+    wsdl_path = config['wsdl_path']
+    
     # 外部ファイルからSOQLクエリを読み込む
     query_file = f"queries/{object_name}.soql"  # クエリファイルのパス
     soql_query = load_soql_query(query_file)
     
     # Salesforceからデータを抽出
-    sf_extractor = SalesforceBulkExtractor(config['wsdl_url'], access_token, instance_url)
+    sf_extractor = SalesforceBulkExtractor(wsdl_path, access_token, instance_url)
     data = sf_extractor.query_data(soql_query)
     
     # データのフィールドはSOQLクエリに依存
