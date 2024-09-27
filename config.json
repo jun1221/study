@@ -1,0 +1,8 @@
+{
+    "wsdl_url": "https://path-to-wsdl-file",
+    "consumer_key": "your_consumer_key",
+    "consumer_secret": "your_consumer_secret",
+    "username": "your_salesforce_username",
+    "password": "your_password_with_security_token",
+    "bucket_name": "your_gcs_bucket"
+}
