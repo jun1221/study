@@ -23,12 +23,15 @@ class SalesforceBulkExtractor:
         # SalesforceのインスタンスURLでエンドポイントを設定
         self.client.wsdl.services[service_name].ports[port_name].binding_options['address'] = f"{instance_url}/services/Soap/c/53.0"
 
+        # SessionHeader型を取得
+        self.SessionHeaderType = self.client.get_type('ns0:SessionHeader')
+
         # セッションヘッダーを設定
-        self.session_header = {'SessionHeader': {'sessionId': access_token}}
+        self.session_header = self.SessionHeaderType(sessionId=access_token)
 
     def query_data(self, soql_query):
         # SOQLクエリを実行し、結果を返す
-        response = self.client.service.query(soql_query, _soapheaders={'SessionHeader': self.session_header})
+        response = self.client.service.query(soql_query, _soapheaders=[self.session_header])
         return response['records']
 
 class GCSUploader:
