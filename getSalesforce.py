@@ -16,8 +16,12 @@ class SalesforceBulkExtractor:
         # WSDLファイルを読み込み、クライアントを作成
         self.client = Client(wsdl_path, transport=transport)
 
+        # サービスとポートの名前を取得
+        service_name = list(self.client.wsdl.services.keys())[0]
+        port_name = list(self.client.wsdl.services[service_name].ports.keys())[0]
+
         # SalesforceのインスタンスURLでエンドポイントを設定
-        self.client.wsdl.services[0].ports[0].binding_options['address'] = f"{instance_url}/services/Soap/c/53.0"
+        self.client.wsdl.services[service_name].ports[port_name].binding_options['address'] = f"{instance_url}/services/Soap/c/53.0"
 
         # セッションヘッダーを設定
         self.session_header = {'SessionHeader': {'sessionId': access_token}}
